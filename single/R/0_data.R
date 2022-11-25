@@ -1,39 +1,77 @@
 ###data
 library(Seurat)
-#load data
 
+#load data
 #Keloid (sternum) patient sample - bulk cells after tissue dissociation and death cell removal
-tabib.data1  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_4/MD001_DK1/filtered_feature_bc_matrix")
+data1  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_4/MD001_DK1/filtered_feature_bc_matrix")
 
 #Keloid (earlobe) patient sample - bulk cells after tissue dissociation and death cell removal.
-tabib.data2  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_16/MD004_DK3_Direder_4/filtered_feature_bc_matrix")
+data2  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_16/MD004_DK3_Direder_4/filtered_feature_bc_matrix")
 
 #Keloid (earlobe) patient sample - bulk cells after tissue dissociation and death cell removal,
-tabib.data3  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_20/MD005_DK4L_Direder_5/filtered_feature_bc_matrix")
+data3  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_20/MD005_DK4L_Direder_5/filtered_feature_bc_matrix")
 
 #Keloid (earlobe) patient sample - bulk cells after tissue dissociation and death cell removal,
-tabib.data4  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/MD005_DK4R_Direder_5/filtered_feature_bc_matrix")
+data4  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/MD005_DK4R_Direder_5/filtered_feature_bc_matrix")
+
+
+# healthy human skin sample - bulk cells after tissue dissociation and dead cell removal
+data5  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_30/MD007_DN2_NH_human_Direder_7/filtered_feature_bc_matrix")
+
+
+# healthy human skin sample - bulk cells after tissue dissociation and dead cell removal
+data6  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_31/MD007_DN3_NH_human_Direder_7/filtered_feature_bc_matrix")
 
 
 
-#set up tabib data
-tabib.keloid1 <- CreateSeuratObject(counts=tabib.data1 , assay="RNA")
-tabib.keloid2 <- CreateSeuratObject(counts=tabib.data2 , assay="RNA")
-tabib.keloid3 <- CreateSeuratObject(counts=tabib.data3 , assay="RNA")
-tabib.keloid4 <- CreateSeuratObject(counts=tabib.data4 , assay="RNA")
+#set up seurat and add identifiers
+data1 <- CreateSeuratObject(counts=data1 , assay="RNA")
+data2 <- CreateSeuratObject(counts=data2 , assay="RNA")
+data3 <- CreateSeuratObject(counts=data3 , assay="RNA")
+data4 <- CreateSeuratObject(counts=data4 , assay="RNA")
+data5 <- CreateSeuratObject(counts=data5 , assay="RNA")
+data6 <- CreateSeuratObject(counts=data6 , assay="RNA")
+
+
+#add meta data, column name and column ID
+data1 <- AddMetaData(data1, "sample_1", col.name = "sample")
+data2 <- AddMetaData(data2, "sample_2", col.name = "sample")
+data3 <- AddMetaData(data3, "sample_3", col.name = "sample")
+data4 <- AddMetaData(data4, "sample_4", col.name = "sample")
+data5 <- AddMetaData(data5, "sample_5", col.name = "sample")
+data6 <- AddMetaData(data6, "sample_6", col.name = "sample")
+
+
+#add meta data, column name and column ID
+data1 <- AddMetaData(data1, "keloid_sternum", col.name = "condition")
+data2 <- AddMetaData(data2, "keloid_earlobe", col.name = "condition")
+data3 <- AddMetaData(data3, "keloid_earlobe", col.name = "condition")
+data4 <- AddMetaData(data4, "keloid_earlobe", col.name = "condition")
+data5 <- AddMetaData(data5, "healthy_skin",   col.name = "condition")
+data6 <- AddMetaData(data6, "healthy_skin",   col.name = "condition")
 
 
 
-tabib.keloid <- merge(tabib.keloid1, y = c(tabib.keloid2, tabib.keloid3, tabib.keloid4), add.cell.ids = c("k1", "k2", "k3", "k4"), project = "")
-tabib.keloid
+##merge datasets
+#keloid
+
+data_keloid <- merge(data1, y = c(data2, data3, data4), add.cell.ids = c("k1", "k2", "k3", "k4"), project = "")
+data_keloid
+
+#healthy 
+
+data_health <- merge(data5, y = c(data6), add.cell.ids = c("k5", "k6"), project = "")
+data_health
+
 #subset samples
 
+data.keloid[["percent.mt"]] <- PercentageFeatureSet(data.keloid, pattern = "^MT-")
 
-tabib.keloid[["percent.mt"]] <- PercentageFeatureSet(tabib.keloid, pattern = "^MT-")
+head(data.keloid@meta.data, 5)
 
-head(tabib.keloid@meta.data, 5)
+VlnPlot(data.keloid, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
 
-VlnPlot(tabib.keloid, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+VlnPlot(data.health, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
 
 
 
@@ -42,12 +80,13 @@ plot2 <- FeatureScatter(tabib.keloid, feature1 = "nCount_RNA", feature2 = "nFeat
 plot1 + plot2
 
 
+
+#subset
 tabib.keloid <- subset(tabib.keloid, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
 
 
 ### normalize data
 tabib.keloid <- NormalizeData(tabib.keloid, normalization.method = "LogNormalize", scale.factor = 10000)
-
 
 tabib.keloid <- FindVariableFeatures(tabib.keloid, selection.method = "vst", nfeatures = 2000)
 
@@ -77,7 +116,6 @@ DimHeatmap(tabib.keloid, dims = 1:15, cells = 500, balanced = TRUE)
 
 
 ###
-tabib.keloid <- JackStraw(tabib.keloid, num.replicate = 100)
 tabib.keloid <- ScoreJackStraw(tabib.keloid, dims = 1:20)
 
 

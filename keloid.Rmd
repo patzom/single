@@ -1,0 +1,214 @@
+---
+title: "ssc"
+author: "Patrick Zommer"
+date: '2022-11-25'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r data}
+###data
+library(Seurat)
+
+#load data
+#Keloid (sternum) patient sample - bulk cells after tissue dissociation and death cell removal
+data1  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_4/MD001_DK1/filtered_feature_bc_matrix")
+
+#Keloid (earlobe) patient sample - bulk cells after tissue dissociation and death cell removal.
+data2  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_16/MD004_DK3_Direder_4/filtered_feature_bc_matrix")
+
+#Keloid (earlobe) patient sample - bulk cells after tissue dissociation and death cell removal,
+data3  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_20/MD005_DK4L_Direder_5/filtered_feature_bc_matrix")
+
+#Keloid (earlobe) patient sample - bulk cells after tissue dissociation and death cell removal,
+data4  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/MD005_DK4R_Direder_5/filtered_feature_bc_matrix")
+
+# healthy human skin sample - bulk cells after tissue dissociation and dead cell removal
+data5  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_30/MD007_DN2_NH_human_Direder_7/filtered_feature_bc_matrix")
+
+# healthy human skin sample - bulk cells after tissue dissociation and dead cell removal
+data6  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_31/MD007_DN3_NH_human_Direder_7/filtered_feature_bc_matrix")
+```
+
+
+```{r set up seurant and add metadata identifiers}
+#set up seurat and add identifiers
+data1 <- CreateSeuratObject(counts=data1 , assay="RNA")
+data2 <- CreateSeuratObject(counts=data2 , assay="RNA")
+data3 <- CreateSeuratObject(counts=data3 , assay="RNA")
+data4 <- CreateSeuratObject(counts=data4 , assay="RNA")
+data5 <- CreateSeuratObject(counts=data5 , assay="RNA")
+data6 <- CreateSeuratObject(counts=data6 , assay="RNA")
+
+
+#add meta data, column name and column ID
+data1 <- AddMetaData(data1, "sample_1", col.name = "sample")
+data2 <- AddMetaData(data2, "sample_2", col.name = "sample")
+data3 <- AddMetaData(data3, "sample_3", col.name = "sample")
+data4 <- AddMetaData(data4, "sample_4", col.name = "sample")
+data5 <- AddMetaData(data5, "sample_5", col.name = "sample")
+data6 <- AddMetaData(data6, "sample_6", col.name = "sample")
+
+
+#add meta data, column name and column ID
+data1 <- AddMetaData(data1, "keloid_sternum", col.name = "condition")
+data2 <- AddMetaData(data2, "keloid_earlobe", col.name = "condition")
+data3 <- AddMetaData(data3, "keloid_earlobe", col.name = "condition")
+data4 <- AddMetaData(data4, "keloid_earlobe", col.name = "condition")
+data5 <- AddMetaData(data5, "healthy_skin",   col.name = "condition")
+data6 <- AddMetaData(data6, "healthy_skin",   col.name = "condition")
+```
+
+
+```{r merge data}
+##merge datasets
+#keloid
+
+data_keloid <- merge(data1, y = c(data2, data3, data4), add.cell.ids = c("k1", "k2", "k3", "k4"), project = "")
+data_keloid
+
+#healthy 
+data_healthy <- merge(data5, y = c(data6), add.cell.ids = c("k5", "k6"), project = "")
+data_healthy
+
+#subset samples
+
+data_keloid[["percent.mt"]] <- PercentageFeatureSet(data_keloid, pattern = "^MT-")
+head(data_keloid@meta.data, 5)
+
+data_healthy[["percent.mt"]] <- PercentageFeatureSet(data_healthy, pattern = "^MT-")
+head(data_healthy@meta.data, 5)
+
+
+```
+
+
+# violine plots for keloids and healthy skin
+
+```{r violine, echo=F}
+
+VlnPlot(data_keloid, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+
+VlnPlot(data_healthy, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+```
+
+# plotting percentage mtch and unique feature count 
+```{r plot}
+plot_keloid1 <- FeatureScatter(data_keloid, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot_keloid2 <- FeatureScatter(data_keloid, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot_keloid1
+plot_keloid2
+
+plot_healthy1 <- FeatureScatter(data_healthy, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot_healthy2 <- FeatureScatter(data_healthy, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot_healthy1
+plot_healthy2
+
+```
+
+```{r subset data and normalizing}
+
+#subset
+data_keloid <- subset(data_keloid, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+
+# normalize data
+data_keloid <- NormalizeData(data_keloid, normalization.method = "LogNormalize", scale.factor = 10000)
+data_keloid <- FindVariableFeatures(data_keloid, selection.method = "vst", nfeatures = 2000)
+
+
+#subset
+data_healthy <- subset(data_healthy, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+
+# normalize data
+data_healthy <- NormalizeData(data_healthy, normalization.method = "LogNormalize", scale.factor = 10000)
+data_healthy <- FindVariableFeatures(data_healthy, selection.method = "vst", nfeatures = 2000)
+
+
+```
+# Identify the 10 most highly variable genes and plot variable features with and without labels
+
+```{r identify genes}
+
+top10 <- head(VariableFeatures(data_keloid), 10)
+
+keloid_plot1 <- VariableFeaturePlot(data_keloid)
+keloid_plot2 <- LabelPoints(plot = keloid_plot1, points = top10, repel = TRUE)
+keloid_plot2
+
+
+top10 <- head(VariableFeatures(data_healthy), 10)
+
+healthy_plot1 <- VariableFeaturePlot(data_healthy)
+healthy_plot2 <- LabelPoints(plot = healthy_plot1, points = top10, repel = TRUE)
+healthy_plot2
+
+```
+#scaling the data and run PCA
+```{r }
+all.genes <- rownames(data_keloid)
+data_keloid <- ScaleData(data_keloid, features = all.genes)
+data_keloid <- RunPCA(data_keloid, features = VariableFeatures(object = data_keloid))
+
+
+
+all.genes <- rownames(data_healthy)
+data_healthy <- ScaleData(data_healthy, features = all.genes)
+data_healthy <- RunPCA(data_healthy, features = VariableFeatures(object = data_healthy))
+
+```
+#PCA
+
+```{r }
+print(data_keloid[["pca"]], dims = 1:5, nfeatures = 5)
+VizDimLoadings(data_keloid, dims = 1:2, reduction = "pca")
+DimPlot(data_keloid, reduction = "pca")
+
+#heatmap
+DimHeatmap(data_keloid, dims = 1, cells = 500, balanced = TRUE)
+DimHeatmap(data_keloid, dims = 1:15, cells = 500, balanced = TRUE)
+
+ElbowPlot(data_keloid)
+
+###healthy
+print(data_healthy[["pca"]], dims = 1:5, nfeatures = 5)
+VizDimLoadings(data_healthy, dims = 1:2, reduction = "pca")
+DimPlot(data_healthy, reduction = "pca")
+
+#heatmap
+DimHeatmap(data_healthy, dims = 1, cells = 500, balanced = TRUE)
+DimHeatmap(data_healthy, dims = 1:15, cells = 500, balanced = TRUE)
+
+ElbowPlot(data_healthy)
+
+```
+#Cluster the cells based on elbow plot
+
+```{r }
+data_keloid <- FindNeighbors(data_keloid, dims = 1:10)
+data_keloid <- FindClusters(data_keloid, resolution = 0.5)
+head(Idents(data_keloid), 5)
+
+data_healthy <- FindNeighbors(data_healthy, dims = 1:10)
+data_healthy <- FindClusters(data_healthy, resolution = 0.5)
+head(Idents(data_healthy), 5)
+
+```
+
+```{r}
+data_keloid <- RunUMAP(data_keloid, dims = 1:10)
+DimPlot(data_keloid, reduction = "umap")
+
+data_healthy <- RunUMAP(data_healthy, dims = 1:10)
+DimPlot(data_healthy, reduction = "umap")
+```
+
+
