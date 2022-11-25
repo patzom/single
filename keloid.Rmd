@@ -210,5 +210,17 @@ DimPlot(data_keloid, reduction = "umap")
 data_healthy <- RunUMAP(data_healthy, dims = 1:10)
 DimPlot(data_healthy, reduction = "umap")
 ```
+#integrating data
+```{r integrating}
+gene.activities <- GeneActivity(pbmc.atac, features = VariableFeatures(pbmc.rna))
+
+# add gene activities as a new assay
+pbmc.atac[["ACTIVITY"]] <- CreateAssayObject(counts = gene.activities)
+
+# normalize gene activities
+DefaultAssay(pbmc.atac) <- "ACTIVITY"
+pbmc.atac <- NormalizeData(pbmc.atac)
+pbmc.atac <- ScaleData(pbmc.atac, features = rownames(pbmc.atac))
+```
 
 
