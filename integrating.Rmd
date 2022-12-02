@@ -106,7 +106,7 @@ VlnPlot(data, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3
 
 
 
-keloid.list <- SplitObject(data_all, split.by = "condition")
+keloid.list <- SplitObject(data, split.by = "sample")
 
 keloid.list <- lapply(X = keloid.list, FUN = function(x) {
     x <- NormalizeData(x)
@@ -127,6 +127,7 @@ immune.combined <- IntegrateData(anchorset = immune.anchors)
 
 
 ```
+
 ```{r}
 # specify that we will perform downstream analysis on the corrected data note that the
 # original unmodified data still resides in the 'RNA' assay
@@ -134,15 +135,29 @@ DefaultAssay(immune.combined) <- "integrated"
 
 # Run the standard workflow for visualization and clustering
 immune.combined <- ScaleData(immune.combined, verbose = FALSE)
-immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
-immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:30)
-immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:30)
-immune.combined <- FindClusters(immune.combined, resolution = 0.5)
+immune.combined <- RunPCA(immune.combined, npcs = 50, verbose = FALSE)
+immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:12)
+immune.combined <- FindClusters(immune.combined, resolution = 0.2)
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:14,n.neighbours=500L, min.dist=0.2)
+
 
 # Visualization
 p1 <- DimPlot(immune.combined, reduction = "umap", group.by = "condition")
 p2 <- DimPlot(immune.combined, reduction = "umap", label = TRUE, repel = TRUE)
 p1 + p2
+
+
+
+#feature plot
+
+
+
+UMAPPlot(immune.combined, split.by= "condition", label = T, order=T)
+
+features <- c("MKI67", "KRT14", "KRTDAP", "FLG", "CDSN", "MLANA", "PTPRC", "CD207", "SELE", "LYVE1", "COL1A1", "S100B", "ACTA2")
+FeaturePlot(immune.combined, features = features, min.cutoff = 3, max.cutoff = 6, order = T)
+
+
 ```
 
 ```{r}
