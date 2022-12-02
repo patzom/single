@@ -1,0 +1,160 @@
+---
+title: "integrating data"
+author: "Patrick Zommer"
+date: '2022-12-02'
+output: html_document
+---
+
+
+
+```{r}
+library(future)
+# check the current active plan
+plan()
+
+plan("multicore", workers = 8)
+
+options(future.globals.maxSize = 2500* 1024^2)
+
+plan()
+
+```
+
+
+
+```{r}
+library(Seurat)
+#load data
+#Keloid (sternum) patient sample - bulk cells after tissue dissociation and death cell removal
+data1  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_4/MD001_DK1/filtered_feature_bc_matrix")
+
+#Keloid (earlobe) patient sample - bulk cells after tissue dissociation and death cell removal.
+data2  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_16/MD004_DK3_Direder_4/filtered_feature_bc_matrix")
+
+#Keloid (earlobe) patient sample - bulk cells after tissue dissociation and death cell removal,
+data3  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_20/MD005_DK4L_Direder_5/filtered_feature_bc_matrix")
+
+#Keloid (earlobe) patient sample - bulk cells after tissue dissociation and death cell removal,
+data4  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/MD005_DK4R_Direder_5/filtered_feature_bc_matrix")
+
+# healthy human skin sample - bulk cells after tissue dissociation and dead cell removal
+data5  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_30/MD007_DN2_NH_human_Direder_7/filtered_feature_bc_matrix")
+
+# healthy human skin sample - bulk cells after tissue dissociation and dead cell removal
+data6  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_31/MD007_DN3_NH_human_Direder_7/filtered_feature_bc_matrix")
+
+
+data1 <- CreateSeuratObject(counts=data1 , assay="RNA")
+data2 <- CreateSeuratObject(counts=data2 , assay="RNA")
+data3 <- CreateSeuratObject(counts=data3 , assay="RNA")
+data4 <- CreateSeuratObject(counts=data4 , assay="RNA")
+data5 <- CreateSeuratObject(counts=data5 , assay="RNA")
+data6 <- CreateSeuratObject(counts=data6 , assay="RNA")
+
+
+#add meta data, column name and column ID
+data1 <- AddMetaData(data1, "sample_1", col.name = "sample")
+data2 <- AddMetaData(data2, "sample_2", col.name = "sample")
+data3 <- AddMetaData(data3, "sample_3", col.name = "sample")
+data4 <- AddMetaData(data4, "sample_4", col.name = "sample")
+data5 <- AddMetaData(data5, "sample_5", col.name = "sample")
+data6 <- AddMetaData(data6, "sample_6", col.name = "sample")
+
+
+#add meta data, column name and column ID
+data1 <- AddMetaData(data1, "keloid_sternum", col.name = "condition")
+data2 <- AddMetaData(data2, "keloid_earlobe", col.name = "condition")
+data3 <- AddMetaData(data3, "keloid_earlobe", col.name = "condition")
+data4 <- AddMetaData(data4, "keloid_earlobe", col.name = "condition")
+data5 <- AddMetaData(data5, "healthy_skin",   col.name = "condition")
+data6 <- AddMetaData(data6, "healthy_skin",   col.name = "condition")
+
+
+data <- merge(data1, y = c(data2, data3, data4, data5, data6), add.cell.ids = c("k1", "k2", "k3", "k4", "k5", "k6"), project = "")
+
+```
+
+
+```{r}
+#subset samples
+
+data[["percent.mt"]] <- PercentageFeatureSet(data, pattern = "^MT-")
+head(data@meta.data, 5)
+
+```
+
+
+```{r violine, echo=F}
+VlnPlot(data, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+```
+
+```{r}
+data <- subset(data, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10)
+```
+
+
+
+
+
+```{r}
+VlnPlot(data, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+```
+
+
+```{r integrating}
+#create dataset of all 
+
+
+
+keloid.list <- SplitObject(data_all, split.by = "condition")
+
+keloid.list <- lapply(X = keloid.list, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+
+
+# select features that are repeatedly variable across datasets for integration
+features <- SelectIntegrationFeatures(object.list = keloid.list)
+
+immune.anchors <- FindIntegrationAnchors(object.list = keloid.list, anchor.features = features)
+
+
+
+# this command creates an 'integrated' data assay
+immune.combined <- IntegrateData(anchorset = immune.anchors)
+
+
+```
+```{r}
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(immune.combined) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+immune.combined <- ScaleData(immune.combined, verbose = FALSE)
+immune.combined <- RunPCA(immune.combined, npcs = 30, verbose = FALSE)
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:30)
+immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:30)
+immune.combined <- FindClusters(immune.combined, resolution = 0.5)
+
+# Visualization
+p1 <- DimPlot(immune.combined, reduction = "umap", group.by = "condition")
+p2 <- DimPlot(immune.combined, reduction = "umap", label = TRUE, repel = TRUE)
+p1 + p2
+```
+
+```{r}
+DimPlot(immune.combined, reduction = "umap", split.by = "condition")
+```
+```{r}
+library(BiocManager)
+library(metap)
+library(multtest)
+
+DefaultAssay(immune.combined) <- "RNA"
+nk.markers <- FindConservedMarkers(immune.combined, ident.1 = 6, grouping.var = "condition", verbose = FALSE)
+head(nk.markers)
+```
+

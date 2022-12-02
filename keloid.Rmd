@@ -18,6 +18,7 @@ When you click the **Knit** button a document will be generated that includes bo
 ```{r data}
 ###data
 library(Seurat)
+library(patchwork)
 
 #load data
 #Keloid (sternum) patient sample - bulk cells after tissue dissociation and death cell removal
@@ -79,6 +80,9 @@ data_keloid
 #healthy 
 data_healthy <- merge(data5, y = c(data6), add.cell.ids = c("k5", "k6"), project = "")
 data_healthy
+
+
+data_all <- merge(data_healthy, y = c(data2, data3, data4, data5, data6), add.cell.ids = c("k1", "k2", "k3", "k4", "k5", "k6"), project = "")
 
 #subset samples
 
@@ -210,17 +214,6 @@ DimPlot(data_keloid, reduction = "umap")
 data_healthy <- RunUMAP(data_healthy, dims = 1:10)
 DimPlot(data_healthy, reduction = "umap")
 ```
-#integrating data
-```{r integrating}
-gene.activities <- GeneActivity(pbmc.atac, features = VariableFeatures(pbmc.rna))
 
-# add gene activities as a new assay
-pbmc.atac[["ACTIVITY"]] <- CreateAssayObject(counts = gene.activities)
-
-# normalize gene activities
-DefaultAssay(pbmc.atac) <- "ACTIVITY"
-pbmc.atac <- NormalizeData(pbmc.atac)
-pbmc.atac <- ScaleData(pbmc.atac, features = rownames(pbmc.atac))
-```
 
 
