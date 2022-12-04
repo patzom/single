@@ -1,0 +1,233 @@
+---
+title: "integrating data"
+author: "Patrick Zommer"
+date: '2022-12-02'
+output: html_document
+---
+
+
+
+```{r activate parallelization}
+library(future)
+# check the current active plan
+plan()
+plan("multicore", workers = 8)
+options(future.globals.maxSize = 2500* 1024^2)
+plan()
+```
+
+
+
+```{r load data, merge}
+library(Seurat)
+
+#Keloid (sternum) patient sample - bulk cells after tissue dissociation and death cell removal
+data1  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_4/MD001_DK1/filtered_feature_bc_matrix")
+
+#Keloid (earlobe) patient sample - bulk cells after tissue dissociation and death cell removal.
+data2  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_16/MD004_DK3_Direder_4/filtered_feature_bc_matrix")
+
+#Keloid (earlobe) patient sample - bulk cells after tissue dissociation and death cell removal,
+data3  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_20/MD005_DK4L_Direder_5/filtered_feature_bc_matrix")
+
+#Keloid (earlobe) patient sample - bulk cells after tissue dissociation and death cell removal,
+data4  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/MD005_DK4R_Direder_5/filtered_feature_bc_matrix")
+
+# healthy human skin sample - bulk cells after tissue dissociation and dead cell removal
+data5  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_30/MD007_DN2_NH_human_Direder_7/filtered_feature_bc_matrix")
+
+# healthy human skin sample - bulk cells after tissue dissociation and dead cell removal
+data6  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_31/MD007_DN3_NH_human_Direder_7/filtered_feature_bc_matrix")
+
+
+data1 <- CreateSeuratObject(counts=data1 , assay="RNA")
+data2 <- CreateSeuratObject(counts=data2 , assay="RNA")
+data3 <- CreateSeuratObject(counts=data3 , assay="RNA")
+data4 <- CreateSeuratObject(counts=data4 , assay="RNA")
+data5 <- CreateSeuratObject(counts=data5 , assay="RNA")
+data6 <- CreateSeuratObject(counts=data6 , assay="RNA")
+
+
+#add meta data, column name and column ID
+data1 <- AddMetaData(data1, "sample_1", col.name = "sample")
+data2 <- AddMetaData(data2, "sample_2", col.name = "sample")
+data3 <- AddMetaData(data3, "sample_3", col.name = "sample")
+data4 <- AddMetaData(data4, "sample_4", col.name = "sample")
+data5 <- AddMetaData(data5, "sample_5", col.name = "sample")
+data6 <- AddMetaData(data6, "sample_6", col.name = "sample")
+
+
+#add meta data, column name and column ID
+data1 <- AddMetaData(data1, "keloid_sternum", col.name = "condition")
+data2 <- AddMetaData(data2, "keloid_earlobe", col.name = "condition")
+data3 <- AddMetaData(data3, "keloid_earlobe", col.name = "condition")
+data4 <- AddMetaData(data4, "keloid_earlobe", col.name = "condition")
+data5 <- AddMetaData(data5, "healthy_skin",   col.name = "condition")
+data6 <- AddMetaData(data6, "healthy_skin",   col.name = "condition")
+
+
+
+#add meta data, column name and column ID
+data1 <- AddMetaData(data1, "keloid", col.name = "condition2")
+data2 <- AddMetaData(data2, "keloid", col.name = "condition2")
+data3 <- AddMetaData(data3, "keloid", col.name = "condition2")
+data4 <- AddMetaData(data4, "keloid", col.name = "condition2")
+data5 <- AddMetaData(data5, "healthy_skin",   col.name = "condition2")
+data6 <- AddMetaData(data6, "healthy_skin",   col.name = "condition2")
+
+
+#data <- merge(data1, y = c(data2, data3, data4, data5, data6), add.cell.ids = c("k1", "k2", "k3", "k4", "k5", "k6"), project = "")
+#data[["percent.mt"]] <- PercentageFeatureSet(data, pattern = "^MT-")
+
+data1[["percent.mt"]] <- PercentageFeatureSet(data1, pattern = "^MT-")
+data2[["percent.mt"]] <- PercentageFeatureSet(data2, pattern = "^MT-")
+data3[["percent.mt"]] <- PercentageFeatureSet(data3, pattern = "^MT-")
+data4[["percent.mt"]] <- PercentageFeatureSet(data4, pattern = "^MT-")
+data5[["percent.mt"]] <- PercentageFeatureSet(data5, pattern = "^MT-")
+data6[["percent.mt"]] <- PercentageFeatureSet(data6, pattern = "^MT-")
+```
+
+
+```{r sctransform data}
+library(glmGamPoi)
+
+data1 <- SCTransform(data1, method = "glmGamPoi", vars.to.regress = "percent.mt", verbose = FALSE)
+data2 <- SCTransform(data2, method = "glmGamPoi", vars.to.regress = "percent.mt", verbose = FALSE)
+data3 <- SCTransform(data3, method = "glmGamPoi", vars.to.regress = "percent.mt", verbose = FALSE)
+data4 <- SCTransform(data4, method = "glmGamPoi", vars.to.regress = "percent.mt", verbose = FALSE)
+data5 <- SCTransform(data5, method = "glmGamPoi", vars.to.regress = "percent.mt", verbose = FALSE)
+data6 <- SCTransform(data6, method = "glmGamPoi", vars.to.regress = "percent.mt", verbose = FALSE)
+
+
+keloid.data <- merge(data1, y = c(data2, data3, data4, data5, data6), add.cell.ids = c("k1", "k2", "k3", "k4", "k5", "k6"), project = "")
+keloid.list <- SplitObject(keloid.data, split.by = "sample")
+
+
+
+DefaultAssay(data1) <- "SCT"
+DefaultAssay(data2) <- "SCT"
+DefaultAssay(data3) <- "SCT"
+DefaultAssay(data4) <- "SCT"
+DefaultAssay(data5) <- "SCT"
+DefaultAssay(data6) <- "SCT"
+
+
+
+```
+
+
+```{r plot filtered/subsetted}
+
+lapply(X = keloid.list, FUN = function(x) {
+        x <- VlnPlot(x, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+})
+
+```
+
+
+```{r subset/filtering based on violine plot}
+
+data1 <- subset(data1, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10)
+data2 <- subset(data2, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10)
+data3 <- subset(data3, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10)
+data4 <- subset(data4, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10)
+data5 <- subset(data5, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10)
+data6 <- subset(data6, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10)
+```
+
+
+
+```{r pca}
+data1 <- RunPCA(data1, npcs = 50)
+data2 <- RunPCA(data2, npcs = 50)
+data3 <- RunPCA(data3, npcs = 50)
+data4 <- RunPCA(data4, npcs = 50)
+data5 <- RunPCA(data5, npcs = 50)
+data6 <- RunPCA(data6, npcs = 50)
+
+ElbowPlot(data1, ndims=50)
+ElbowPlot(data2, ndims=50)
+ElbowPlot(data3, ndims=50)
+ElbowPlot(data4, ndims=50)
+ElbowPlot(data5, ndims=50)
+ElbowPlot(data6, ndims=50)
+```
+
+
+
+```{r doubletfinder #https://uofuhealth.utah.edu/huntsman/shared-resources/gba/htg/single-cell/genomics-10x}
+remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
+
+library(DoubletFinder)
+nExp1 <- round(ncol(data1) * 0.04)  # expect 4% doublets
+data1 <- doubletFinder_v3(data1, pN = 0.25, pK = 0.09, nExp = nExp1, PCs = 1:20, sct=T)
+
+nExp2 <- round(ncol(data2) * 0.04)  # expect 4% doublets
+data2 <- doubletFinder_v3(data2, pN = 0.25, pK = 0.09, nExp = nExp2, PCs = 1:20, sct=T)
+
+nExp3 <- round(ncol(data3) * 0.04)  # expect 4% doublets
+data3 <- doubletFinder_v3(data3, pN = 0.25, pK = 0.09, nExp = nExp3, PCs = 1:20, sct=T)
+
+nExp4 <- round(ncol(data4) * 0.04)  # expect 4% doublets
+data4 <- doubletFinder_v3(data4, pN = 0.25, pK = 0.09, nExp = nExp4, PCs = 1:20, sct=T)
+
+nExp5 <- round(ncol(data5) * 0.04)  # expect 4% doublets
+data5 <- doubletFinder_v3(data5, pN = 0.25, pK = 0.09, nExp = nExp5, PCs = 1:20, sct=T)
+
+nExp6 <- round(ncol(data6) * 0.04)  # expect 4% doublets
+data6 <- doubletFinder_v3(data6, pN = 0.25, pK = 0.09, nExp = nExp6, PCs = 1:20, sct=T)
+```
+
+
+
+
+```{r remove doublets}
+
+data1 = RunUMAP(data1, dims = 1:10, verbose = F)
+data2 = RunUMAP(data2, dims = 1:10, verbose = F)
+data3 = RunUMAP(data3, dims = 1:10, verbose = F)
+data4 = RunUMAP(data4, dims = 1:10, verbose = F)
+data5 = RunUMAP(data5, dims = 1:10, verbose = F)
+data6 = RunUMAP(data6, dims = 1:10, verbose = F)
+
+
+DimPlot(data1, group.by = "DF.classifications_0.25_0.09_188")
+DimPlot(data2, group.by = "DF.classifications_0.25_0.09_665")
+DimPlot(data3, group.by = "DF.classifications_0.25_0.09_417")
+DimPlot(data4, group.by = "DF.classifications_0.25_0.09_533")
+DimPlot(data5, group.by = "DF.classifications_0.25_0.09_402")
+DimPlot(data6, group.by = "DF.classifications_0.25_0.09_226")
+
+
+
+data_filt1 <- subset(data1, subset = DF.classifications_0.25_0.09_188 == 'Singlet') #this approach works
+data_filt2 <- subset(data2, subset = DF.classifications_0.25_0.09_665 == 'Singlet') #this approach works
+data_filt3 <- subset(data3, subset = DF.classifications_0.25_0.09_417 == 'Singlet') #this approach works
+data_filt4 <- subset(data4, subset = DF.classifications_0.25_0.09_533 == 'Singlet') #this approach works
+data_filt5 <- subset(data5, subset = DF.classifications_0.25_0.09_402 == 'Singlet') #this approach works
+data_filt6 <- subset(data6, subset = DF.classifications_0.25_0.09_226 == 'Singlet') #this approach works
+
+
+DefaultAssay(data_filt1) <- "RNA"
+DefaultAssay(data_filt2) <- "RNA"
+DefaultAssay(data_filt3) <- "RNA"
+DefaultAssay(data_filt4) <- "RNA"
+DefaultAssay(data_filt5) <- "RNA"
+DefaultAssay(data_filt6) <- "RNA"
+
+data_filt1[['SCT']] <- NULL
+data_filt2[['SCT']] <- NULL
+data_filt3[['SCT']] <- NULL
+data_filt4[['SCT']] <- NULL
+data_filt5[['SCT']] <- NULL
+data_filt6[['SCT']] <- NULL
+
+
+data_keloid <- merge(data_filt1, y = c(data_filt2, data_filt3, data_filt4, data_filt5, data_filt6), add.cell.ids = c("sample_1", "sample_2", "sample_3", "sample_4", "sample_5", "sample_6"), project = "keloid")
+
+```
+
+
+```{r save file}
+saveRDS(data_keloid, file = "data_keloid.rds")
+```

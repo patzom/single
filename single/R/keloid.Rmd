@@ -43,12 +43,12 @@ data6  <- Read10X("C:/Users/labor/Desktop/patrick/single/single/data/set_31/MD00
 
 ```{r set up seurant and add metadata identifiers}
 #set up seurat and add identifiers
-data1 <- CreateSeuratObject(counts=data1 , assay="RNA")
-data2 <- CreateSeuratObject(counts=data2 , assay="RNA")
-data3 <- CreateSeuratObject(counts=data3 , assay="RNA")
-data4 <- CreateSeuratObject(counts=data4 , assay="RNA")
-data5 <- CreateSeuratObject(counts=data5 , assay="RNA")
-data6 <- CreateSeuratObject(counts=data6 , assay="RNA")
+data1 <- CreateSeuratObject(counts=data1, assay="RNA")
+data2 <- CreateSeuratObject(counts=data2, assay="RNA")
+data3 <- CreateSeuratObject(counts=data3, assay="RNA")
+data4 <- CreateSeuratObject(counts=data4, assay="RNA")
+data5 <- CreateSeuratObject(counts=data5, assay="RNA")
+data6 <- CreateSeuratObject(counts=data6, assay="RNA")
 
 
 #add meta data, column name and column ID

@@ -1,0 +1,78 @@
+---
+title: "integrating"
+author: "Patrick Zommer"
+date: '2022-12-04'
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+library(future)
+# check the current active plan
+plan()
+plan("multicore", workers = 8)
+options(future.globals.maxSize = 2500* 1024^2)
+plan()
+```
+
+
+```{r integrating}
+#create dataset of all
+# select features that are repeatedly variable across datasets for integration
+data_keloid <- readRDS("C:/Users/labor/Desktop/patrick/single/data_keloid.rds")
+
+keloid.list <- SplitObject(data_keloid, split.by = "sample")
+
+# normalize and identify variable features for each dataset independently
+
+keloid.list <- lapply(X = keloid.list, FUN = function(x) {
+    x <- SCTransform(x, method = "glmGamPoi", vars.to.regress = "percent.mt", verbose = FALSE)
+})
+
+# select features that are repeatedly variable across datasets for integration
+
+
+features <- SelectIntegrationFeatures(object.list = keloid.list)
+
+PrepSCTIntegration(keloid.list,   assay = NULL,  anchor.features = 2000,  
+                     sct.clip.range = NULL, verbose = TRUE)
+
+immune.anchors <- FindIntegrationAnchors(object.list = keloid.list, anchor.features = features)
+
+
+# this command creates an 'integrated' data assay
+immune.combined <- IntegrateData(anchorset = immune.anchors)
+
+
+```
+
+```{r}
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(immune.combined) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+immune.combined <- ScaleData(immune.combined, verbose = FALSE)
+immune.combined <- RunPCA(immune.combined, npcs = 50, verbose = FALSE)
+
+ElbowPlot(immune.combined)
+immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:6)
+immune.combined <- FindClusters(immune.combined, resolution = 0.2)
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:6,n.neighbours=500L, min.dist=0.2)
+
+
+# Visualization
+p1 <- DimPlot(immune.combined, reduction = "umap", group.by = "condition")
+p2 <- DimPlot(immune.combined, reduction = "umap", label = TRUE, repel = TRUE)
+p1 + p2
+
+
+
+#feature plot
+UMAPPlot(immune.combined, split.by= "condition", label = T, order=T)
+
+features <- c("MKI67", "KRT1", "KRT14", "KRTDAP", "FLG", "CDSN", "MLANA", "PTPRC", "CD207", "SELE", "LYVE1", "COL1A1", "S100B", "ACTA2")
+FeaturePlot(immune.combined, features = features, min.cutoff = 3, max.cutoff = 6, order = T)
+
+
+```

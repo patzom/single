@@ -70,16 +70,30 @@ data5 <- AddMetaData(data5, "healthy_skin",   col.name = "condition")
 data6 <- AddMetaData(data6, "healthy_skin",   col.name = "condition")
 
 
+
+#add meta data, column name and column ID
+data1 <- AddMetaData(data1, "keloid", col.name = "condition2")
+data2 <- AddMetaData(data2, "keloid", col.name = "condition2")
+data3 <- AddMetaData(data3, "keloid", col.name = "condition2")
+data4 <- AddMetaData(data4, "keloid", col.name = "condition2")
+data5 <- AddMetaData(data5, "healthy_skin",   col.name = "condition2")
+data6 <- AddMetaData(data6, "healthy_skin",   col.name = "condition2")
+
+
 data <- merge(data1, y = c(data2, data3, data4, data5, data6), add.cell.ids = c("k1", "k2", "k3", "k4", "k5", "k6"), project = "")
+
+
 
 ```
 
 
 ```{r}
 #subset samples
-
+library(glmGamPoi)
 data[["percent.mt"]] <- PercentageFeatureSet(data, pattern = "^MT-")
 head(data@meta.data, 5)
+data <- SCTransform(data, method = "glmGamPoi", vars.to.regress = "percent.mt", verbose = FALSE)
+#saveRDS(data, file = "data.rds")
 
 ```
 
@@ -104,16 +118,12 @@ VlnPlot(data, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3
 ```{r integrating}
 #create dataset of all 
 
-
-
 keloid.list <- SplitObject(data, split.by = "sample")
 
 keloid.list <- lapply(X = keloid.list, FUN = function(x) {
     x <- NormalizeData(x)
     x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
 })
-
-
 
 # select features that are repeatedly variable across datasets for integration
 features <- SelectIntegrationFeatures(object.list = keloid.list)
@@ -135,10 +145,18 @@ DefaultAssay(immune.combined) <- "integrated"
 
 # Run the standard workflow for visualization and clustering
 immune.combined <- ScaleData(immune.combined, verbose = FALSE)
+
 immune.combined <- RunPCA(immune.combined, npcs = 50, verbose = FALSE)
-immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:12)
+
+ElbowPlot(immune.combined)
+
+immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:6)
+
+
 immune.combined <- FindClusters(immune.combined, resolution = 0.2)
-immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:14,n.neighbours=500L, min.dist=0.2)
+
+
+immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:6,n.neighbours=500L, min.dist=0.2)
 
 
 # Visualization
@@ -154,7 +172,7 @@ p1 + p2
 
 UMAPPlot(immune.combined, split.by= "condition", label = T, order=T)
 
-features <- c("MKI67", "KRT14", "KRTDAP", "FLG", "CDSN", "MLANA", "PTPRC", "CD207", "SELE", "LYVE1", "COL1A1", "S100B", "ACTA2")
+features <- c("MKI67", "KRT1", "KRT14", "KRTDAP", "FLG", "CDSN", "MLANA", "PTPRC", "CD207", "SELE", "LYVE1", "COL1A1", "S100B", "ACTA2")
 FeaturePlot(immune.combined, features = features, min.cutoff = 3, max.cutoff = 6, order = T)
 
 
@@ -162,6 +180,12 @@ FeaturePlot(immune.combined, features = features, min.cutoff = 3, max.cutoff = 6
 
 ```{r}
 DimPlot(immune.combined, reduction = "umap", split.by = "condition")
+
+saveRDS(immune.anchors, file = "immune.anchors.rds")
+saveRDS(immune.combined, file = "immune.combined.rds")
+
+
+
 ```
 ```{r}
 library(BiocManager)
