@@ -11,7 +11,7 @@ library(future)
 # check the current active plan
 plan()
 plan("multicore", workers = 8)
-options(future.globals.maxSize = 2500* 1024^2)
+options(future.globals.maxSize = 4000* 1024^2)
 plan()
 ```
 
@@ -37,12 +37,20 @@ features <- SelectIntegrationFeatures(object.list = keloid.list)
 PrepSCTIntegration(keloid.list,   assay = NULL,  anchor.features = 2000,  
                      sct.clip.range = NULL, verbose = TRUE)
 
+
+
+start_time <- Sys.time()
 immune.anchors <- FindIntegrationAnchors(object.list = keloid.list, anchor.features = features)
+end_time <- Sys.time()
 
 
 # this command creates an 'integrated' data assay
 immune.combined <- IntegrateData(anchorset = immune.anchors)
 
+
+
+saveRDS(immune.anchors, file = "immune.anchors.rds")
+saveRDS(immune.combined, file = "immune.combined.rds")
 
 ```
 
@@ -57,7 +65,7 @@ immune.combined <- RunPCA(immune.combined, npcs = 50, verbose = FALSE)
 
 ElbowPlot(immune.combined)
 immune.combined <- FindNeighbors(immune.combined, reduction = "pca", dims = 1:6)
-immune.combined <- FindClusters(immune.combined, resolution = 0.2)
+immune.combined <- FindClusters(immune.combined, resolution = 0.4)
 immune.combined <- RunUMAP(immune.combined, reduction = "pca", dims = 1:6,n.neighbours=500L, min.dist=0.2)
 
 
@@ -69,10 +77,29 @@ p1 + p2
 
 
 #feature plot
-UMAPPlot(immune.combined, split.by= "condition", label = T, order=T)
+kel_umap <- UMAPPlot(immune.combined, split.by= "condition2", label = T, order=T)
+DefaultAssay(immune.combined) <- "RNA"
 
 features <- c("MKI67", "KRT1", "KRT14", "KRTDAP", "FLG", "CDSN", "MLANA", "PTPRC", "CD207", "SELE", "LYVE1", "COL1A1", "S100B", "ACTA2")
-FeaturePlot(immune.combined, features = features, min.cutoff = 3, max.cutoff = 6, order = T)
+FeaturePlot(immune.combined, features = features, min.cutoff = "q10", max.cutoff = "q90", order = T)
 
 
 ```
+
+
+#go term
+```{r}
+library(dplyr)
+
+cluster.markers <- FindAllMarkers(immune.combined, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+
+cluster.markers %>%
+    group_by(cluster) %>%
+    slice_max(n = 2, order_by = avg_log2FC)
+```
+
+
+```{r}
+
+```
+

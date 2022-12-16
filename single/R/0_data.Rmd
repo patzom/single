@@ -127,12 +127,12 @@ lapply(X = keloid.list, FUN = function(x) {
 
 ```{r subset/filtering based on violine plot}
 
-data1 <- subset(data1, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10)
-data2 <- subset(data2, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10)
-data3 <- subset(data3, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10)
-data4 <- subset(data4, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10)
-data5 <- subset(data5, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10)
-data6 <- subset(data6, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10)
+data1 <- subset(data1, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10  & percent.ERY < 5)
+data2 <- subset(data2, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10  & percent.ERY < 5)
+data3 <- subset(data3, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10  & percent.ERY < 5)
+data4 <- subset(data4, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10  & percent.ERY < 5)
+data5 <- subset(data5, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10  & percent.ERY < 5)
+data6 <- subset(data6, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & nCount_RNA < 10000 & percent.mt < 10  & percent.ERY < 5)
 ```
 
 
